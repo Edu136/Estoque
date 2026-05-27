@@ -1,0 +1,162 @@
+classDiagram
+    direction TB
+
+    class Produto {
+        -Long id
+        -String nome
+        -String descricao
+        -int quantidadeAtual
+        -int estoqueMinimo
+        -BigDecimal precoUnitario
+        -Categoria categoria
+        +boolean estaBaixoDoMinimo()
+        +void atualizarQuantidade(int delta)
+    }
+
+    class Categoria {
+        -Long id
+        -String nome
+        -String descricao
+    }
+
+    class Fornecedor {
+        -Long id
+        -String nome
+        -String contato
+        -String cnpj
+    }
+
+    class Movimentacao {
+        -Long id
+        -Produto produto
+        -TipoMovimentacao tipo
+        -int quantidade
+        -LocalDateTime dataHora
+        -String observacao
+        -Fornecedor fornecedor
+    }
+
+    class TipoMovimentacao {
+        <<enumeration>>
+        ENTRADA
+        SAIDA
+    }
+
+    class MovimentacaoBuilder {
+        -Produto produto
+        -TipoMovimentacao tipo
+        -int quantidade
+        -String observacao
+        -Fornecedor fornecedor
+        +MovimentacaoBuilder produto(Produto p)
+        +MovimentacaoBuilder tipo(TipoMovimentacao t)
+        +MovimentacaoBuilder quantidade(int q)
+        +MovimentacaoBuilder observacao(String o)
+        +MovimentacaoBuilder fornecedor(Fornecedor f)
+        +Movimentacao build()
+    }
+
+    class EstoqueObserver {
+        <<interface>>
+        +void onEstoqueBaixo(Produto produto)
+    }
+
+    class LogNotificador {
+        +void onEstoqueBaixo(Produto produto)
+    }
+
+    class EmailNotificador {
+        -String destinatario
+        +void onEstoqueBaixo(Produto produto)
+    }
+
+    class CalculoEstoqueStrategy {
+        <<interface>>
+        +BigDecimal calcularValorEstoque(List~Produto~ produtos)
+    }
+
+    class CalculoPrecoMedioStrategy {
+        +BigDecimal calcularValorEstoque(List~Produto~ produtos)
+    }
+
+    class CalculoPrecoAtualStrategy {
+        +BigDecimal calcularValorEstoque(List~Produto~ produtos)
+    }
+
+    class ProdutoRepository {
+        <<interface>>
+        +Optional~Produto~ findById(Long id)
+        +List~Produto~ findByEstoqueAbaixoDoMinimo()
+        +List~Produto~ findByCategoria(Categoria c)
+        +Produto save(Produto p)
+    }
+
+    class MovimentacaoRepository {
+        <<interface>>
+        +List~Movimentacao~ findByProduto(Produto p)
+        +List~Movimentacao~ findByPeriodo(LocalDate inicio, LocalDate fim)
+        +Movimentacao save(Movimentacao m)
+    }
+
+    class EstoqueService {
+        -ProdutoRepository produtoRepository
+        -MovimentacaoRepository movimentacaoRepository
+        -List~EstoqueObserver~ observers
+        -CalculoEstoqueStrategy calculoStrategy
+        +void registrarEntrada(Long produtoId, int quantidade, Fornecedor fornecedor)
+        +void registrarSaida(Long produtoId, int quantidade)
+        +List~Produto~ listarAbaixoDoMinimo()
+        +BigDecimal calcularValorTotalEstoque()
+        +void addObserver(EstoqueObserver o)
+        -void notificarObservers(Produto p)
+    }
+
+    class ProdutoService {
+        -ProdutoRepository produtoRepository
+        +Produto cadastrar(Produto produto)
+        +Produto atualizar(Long id, Produto produto)
+        +List~Produto~ listarTodos()
+        +Produto buscarPorId(Long id)
+    }
+
+    class EstoqueController {
+        -EstoqueService estoqueService
+        +ResponseEntity registrarEntrada(EntradaDTO dto)
+        +ResponseEntity registrarSaida(SaidaDTO dto)
+        +ResponseEntity listarAbaixoDoMinimo()
+        +ResponseEntity calcularValorEstoque()
+    }
+
+    class ProdutoController {
+        -ProdutoService produtoService
+        +ResponseEntity cadastrar(ProdutoDTO dto)
+        +ResponseEntity listar()
+        +ResponseEntity buscarPorId(Long id)
+        +ResponseEntity atualizar(Long id, ProdutoDTO dto)
+    }
+
+    %% Relacionamentos de domínio
+    Produto --> Categoria
+    Movimentacao --> Produto
+    Movimentacao --> Fornecedor
+    Movimentacao --> TipoMovimentacao
+    MovimentacaoBuilder ..> Movimentacao : cria
+
+    %% Observer
+    EstoqueObserver <|.. LogNotificador
+    EstoqueObserver <|.. EmailNotificador
+    EstoqueService --> EstoqueObserver
+
+    %% Strategy
+    CalculoEstoqueStrategy <|.. CalculoPrecoMedioStrategy
+    CalculoEstoqueStrategy <|.. CalculoPrecoAtualStrategy
+    EstoqueService --> CalculoEstoqueStrategy
+
+    %% Repositories (DIP)
+    EstoqueService --> ProdutoRepository
+    EstoqueService --> MovimentacaoRepository
+    ProdutoService --> ProdutoRepository
+
+    %% Controllers
+    EstoqueController --> EstoqueService
+    ProdutoController --> ProdutoService
