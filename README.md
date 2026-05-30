@@ -109,3 +109,14 @@ src/
 - `ProdutoTest` — regras de domínio (estoque mínimo, atualização de quantidade)
 - `MovimentacaoBuilderTest` — validações do Builder
 - `EstoqueServiceTest` — fluxos de entrada/saída, Observer e Strategy
+
+---
+
+## 📄 Documentação
+
+| Documento | Descrição |
+|-----------|-----------|
+| [docs/contexto-problema.md](docs/contexto-problema.md) | Descrição detalhada do problema, usuários envolvidos e escopo |
+| [docs/requisitos.md](docs/requisitos.md) | Levantamento de requisitos, User Stories e backlog priorizado |
+| [docs/arquitetura.md](docs/arquitetura.md) | Justificativa dos padrões de projeto e decisões arquiteturais |
+| [diagrama-classes-estoque.mermaid](diagrama-classes-estoque.mermaid) | Diagrama de classes UML |
