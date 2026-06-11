@@ -21,7 +21,7 @@ Essa separação foi escolhida por:
 
 **Classe:** `MovimentacaoBuilder`
 
-**Problema resolvido:**  
+** Problema resolvido:**  
 A criação de um objeto `Movimentacao` envolve múltiplos campos, validações cruzadas (ex: entrada exige fornecedor, quantidade > 0) e campos automáticos (dataHora). Usar construtores com muitos parâmetros ou setters públicos tornaria o código confuso e propenso a erros.
 
 **Por que Builder:**
