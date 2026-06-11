@@ -147,7 +147,7 @@ class EstoqueServiceTest {
         verify(observerMock, never()).onEstoqueBaixo(any());
     }
 
-    // ───── Testes da Strategy ─────
+    // ───── Testes da Strategy.. ─────
 
     @Test
     @DisplayName("Deve calcular valor total do estoque usando Strategy de preço atual")
