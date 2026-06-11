@@ -142,6 +142,8 @@ classDiagram
     Movimentacao --> TipoMovimentacao
     MovimentacaoBuilder ..> Movimentacao : cria
 
+
+
     %% Observer
     EstoqueObserver <|.. LogNotificador
     EstoqueObserver <|.. EmailNotificador
@@ -160,3 +162,10 @@ classDiagram
     %% Controllers
     EstoqueController --> EstoqueService
     ProdutoController --> ProdutoService
+ 
+%% Builder para criação de movimentações
+%% Observer para alertas de estoque baixo
+%% Strategy para diferentes formas de cálculo do estoque
+%% Repository para abstração da persistência de dados
+%% Service concentra as regras de negócio
+%% Controller expõe as operações da API
