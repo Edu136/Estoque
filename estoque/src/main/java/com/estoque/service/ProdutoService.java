@@ -1,22 +1,14 @@
 package com.estoque.service;
-
 import com.estoque.domain.model.Produto;
 import com.estoque.repository.ProdutoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 
-/**
- * SRP: ProdutoService cuida exclusivamente do CRUD de produtos.
- * DIP: depende da interface ProdutoRepository, não da implementação JPA.
- */
 @Service
 public class ProdutoService {
-
     private final ProdutoRepository produtoRepository;
 
-    // Injeção por construtor (DIP)
     public ProdutoService(ProdutoRepository produtoRepository) {
         this.produtoRepository = produtoRepository;
     }
@@ -53,9 +45,18 @@ public class ProdutoService {
         return produtoRepository.findByNomeContainingIgnoreCase(nome);
     }
 
+    @Transactional(readOnly = true)
+    public List<Produto> listarRecentes(int limite) {
+        return produtoRepository.findAll()
+                .stream()
+                .sorted((a, b) -> b.getId().compareTo(a.getId()))
+                .limit(limite)
+                .toList();
+    }
+
     @Transactional
     public void deletar(Long id) {
-        buscarPorId(id); // valida existência antes
+        buscarPorId(id);
         produtoRepository.deleteById(id);
     }
 }
