@@ -37,9 +37,11 @@ O levantamento de requisitos foi realizado por meio de **entrevistas semiestrutu
 | Média | US05 — Consulta de histórico de movimentações | ✅ Implementada |
 | Média | US06 — Cálculo do valor total do estoque | ✅ Implementada |
 | Média | US07 — Busca de produtos por nome | ✅ Implementada |
-| Baixa | US08 — Listagem de produtos abaixo do mínimo | ✅ Implementada |
-| Baixa | US09 — Atualização de dados do produto | ✅ Implementada |
-| Baixa | US10 — Remoção de produto do catálogo | ✅ Implementada |
+| Média | US08 — Adição direta de quantidade ao estoque | ✅ Implementada |
+| Baixa | US09 — Listagem de produtos abaixo do mínimo | ✅ Implementada |
+| Baixa | US10 — Atualização de dados do produto | ✅ Implementada |
+| Baixa | US11 — Remoção de produto do catálogo | ✅ Implementada |
+| Baixa | US12 — Listagem de produtos recentes | ✅ Implementada |
 
 ---
 
@@ -56,7 +58,9 @@ O levantamento de requisitos foi realizado por meio de **entrevistas semiestrutu
 - Quantidade atual deve ser >= 0
 - Estoque mínimo deve ser >= 0
 - Preço unitário deve ser > 0
-- Produto deve ser associado a uma categoria
+- Produto pode ser associado a uma categoria (opcional)
+
+**Endpoint:** `POST /api/produtos`
 
 ---
 
@@ -73,6 +77,8 @@ O levantamento de requisitos foi realizado por meio de **entrevistas semiestrutu
 - A movimentação deve ser registrada com data/hora automática
 - Deve ser possível incluir uma observação opcional
 
+**Endpoint:** `POST /api/estoque/entrada`
+
 ---
 
 #### US03 — Registro de Saída (Venda/Consumo)
@@ -86,6 +92,8 @@ O levantamento de requisitos foi realizado por meio de **entrevistas semiestrutu
 - Não é permitido registrar saída maior que o estoque disponível
 - O sistema deve atualizar a quantidade atual do produto
 - A movimentação deve ser registrada com data/hora automática
+
+**Endpoint:** `POST /api/estoque/saida`
 
 ---
 
@@ -101,6 +109,8 @@ O levantamento de requisitos foi realizado por meio de **entrevistas semiestrutu
 - A notificação deve conter: nome do produto, quantidade atual e estoque mínimo
 - O sistema deve suportar múltiplos canais de notificação sem alterar a lógica principal
 
+**Implementação:** Padrão Observer — `LogNotificador` e `EmailNotificador`
+
 ---
 
 #### US05 — Consulta de Histórico de Movimentações
@@ -113,6 +123,8 @@ O levantamento de requisitos foi realizado por meio de **entrevistas semiestrutu
 - A consulta é feita por produto (ID)
 - Retorna todas as movimentações ordenadas por data (mais recente primeiro)
 - Cada movimentação mostra: tipo (entrada/saída), quantidade, data/hora, observação e fornecedor (se aplicável)
+
+**Endpoint:** `GET /api/estoque/movimentacoes/{produtoId}`
 
 ---
 
@@ -127,6 +139,9 @@ O levantamento de requisitos foi realizado por meio de **entrevistas semiestrutu
 - O sistema deve permitir trocar a estratégia de cálculo sem alterar o código existente
 - O valor retornado deve ser em BigDecimal para precisão monetária
 
+**Endpoint:** `GET /api/estoque/valor-total`  
+**Implementação:** Padrão Strategy — `CalculoPrecoAtualStrategy`, `CalculoPrecoMedioStrategy`
+
 ---
 
 #### US07 — Busca de Produtos por Nome
@@ -140,9 +155,26 @@ O levantamento de requisitos foi realizado por meio de **entrevistas semiestrutu
 - Retorna lista de produtos correspondentes
 - Retorna lista vazia se nenhum produto for encontrado
 
+**Endpoint:** `GET /api/produtos/buscar?nome={termo}`
+
 ---
 
-#### US08 — Listagem de Produtos Abaixo do Mínimo
+#### US08 — Adição Direta de Quantidade ao Estoque
+
+**Como** funcionário do estoque,  
+**quero** adicionar quantidade a um produto diretamente via operação parcial,  
+**para que** eu possa fazer ajustes rápidos sem registrar uma movimentação formal de entrada.
+
+**Critérios de Aceitação:**
+- Quantidade a adicionar deve ser >= 1
+- O produto deve existir
+- Retorna o produto atualizado
+
+**Endpoint:** `PATCH /api/produtos/{id}/adicionar-quantidade?quantidade={n}`
+
+---
+
+#### US09 — Listagem de Produtos Abaixo do Mínimo
 
 **Como** proprietário do comércio,  
 **quero** visualizar todos os produtos que estão com estoque abaixo do mínimo,  
@@ -152,31 +184,51 @@ O levantamento de requisitos foi realizado por meio de **entrevistas semiestrutu
 - Retorna apenas produtos cuja quantidade atual <= estoque mínimo
 - Inclui informações suficientes para decisão de compra (nome, quantidade atual, mínimo)
 
+**Endpoint:** `GET /api/estoque/abaixo-minimo`
+
 ---
 
-#### US09 — Atualização de Dados do Produto
+#### US10 — Atualização de Dados do Produto
 
 **Como** proprietário do comércio,  
 **quero** alterar informações de um produto (nome, descrição, preço, estoque mínimo),  
 **para que** os dados estejam sempre corretos e atualizados.
 
 **Critérios de Aceitação:**
-- Apenas os campos informados são atualizados
-- A quantidade atual não é alterada por esta operação (apenas via movimentações)
-- Se o produto não existir, retorna erro
+- Todos os campos são substituídos pelos novos valores informados
+- A quantidade atual não é alterada por esta operação (apenas via movimentações ou PATCH)
+- Se o produto não existir, retorna 404
+
+**Endpoint:** `PUT /api/produtos/{id}`
 
 ---
 
-#### US10 — Remoção de Produto do Catálogo
+#### US11 — Remoção de Produto do Catálogo
 
 **Como** proprietário do comércio,  
 **quero** remover produtos descontinuados do sistema,  
 **para que** o catálogo reflita apenas itens ativos.
 
 **Critérios de Aceitação:**
-- Se o produto não existir, retorna erro
+- Se o produto não existir, retorna 404
 - A remoção é permanente
 - Retorna confirmação sem conteúdo (HTTP 204)
+
+**Endpoint:** `DELETE /api/produtos/{id}`
+
+---
+
+#### US12 — Listagem de Produtos Recentes
+
+**Como** funcionário,  
+**quero** ver os produtos cadastrados mais recentemente,  
+**para que** eu confirme rapidamente os últimos itens adicionados ao sistema.
+
+**Critérios de Aceitação:**
+- Retorna os N produtos mais recentes (ordenados por ID decrescente)
+- Limite configurável via parâmetro (default: 10)
+
+**Endpoint:** `GET /api/produtos/recentes?limite={n}`
 
 ---
 
@@ -191,3 +243,6 @@ O levantamento de requisitos foi realizado por meio de **entrevistas semiestrutu
 | RNF05 | Padrões | Aplicação de padrões de projeto (Builder, Observer, Strategy, Repository) |
 | RNF06 | Arquitetura | Camadas separadas (Controller → Service → Repository) |
 | RNF07 | Validação | Bean Validation (Jakarta Validation) nos DTOs e entidades |
+| RNF08 | Documentação | OpenAPI 3 via springdoc — UI em `/swagger-ui/index.html` |
+| RNF09 | Tratamento de Erros | GlobalExceptionHandler com respostas JSON padronizadas |
+| RNF10 | CORS | Configurado para aceitar requisições de qualquer origem em `/api/**` |

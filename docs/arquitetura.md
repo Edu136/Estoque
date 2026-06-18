@@ -19,16 +19,17 @@ Essa separação foi escolhida por:
 
 ### 1. Builder (Criacional)
 
-**Classe:** `MovimentacaoBuilder`
+**Classes:** `MovimentacaoBuilder`, `ProdutoBuilder`
 
 **Problema resolvido:**  
-A criação de um objeto `Movimentacao` envolve múltiplos campos, validações cruzadas (ex: entrada exige fornecedor, quantidade > 0) e campos automáticos (dataHora). Usar construtores com muitos parâmetros ou setters públicos tornaria o código confuso e propenso a erros.
+A criação de objetos `Movimentacao` e `Produto` envolve múltiplos campos opcionais e obrigatórios. Usar construtores com muitos parâmetros ou setters públicos tornaria o código confuso e propenso a erros.
 
 **Por que Builder:**
 - Permite construção fluente e legível
 - Encapsula regras de validação no momento da construção
 - Garante que objetos inválidos nunca sejam criados
 - Separa a lógica de construção da entidade em si
+- `ProdutoBuilder` facilita especialmente a criação de fixtures nos testes
 
 **Alternativas consideradas:**
 - Factory Method: descartado pois não resolveria o problema de múltiplas combinações de parâmetros
@@ -78,7 +79,7 @@ O cálculo do valor total do estoque pode ser feito de diferentes formas depende
 
 ### 4. Repository (Estrutural)
 
-**Interfaces:** `ProdutoRepository`, `MovimentacaoRepository`, `FornecedorRepository`
+**Interfaces:** `ProdutoRepository`, `MovimentacaoRepository`, `FornecedorRepository`, `CategoriaRepository`
 
 **Problema resolvido:**  
 A camada de serviço precisa acessar dados persistidos sem se acoplar a uma tecnologia específica de banco de dados. O padrão Repository abstrai o mecanismo de persistência por trás de uma interface de domínio.
@@ -87,7 +88,7 @@ A camada de serviço precisa acessar dados persistidos sem se acoplar a uma tecn
 - Abstrai completamente a tecnologia de persistência (JPA, JDBC, NoSQL)
 - Permite trocar o banco de dados sem alterar a lógica de negócio
 - Facilita testes com mocks (DIP)
-- Métodos com nomes expressivos do domínio (ex: `findAbaixoDoEstoqueMinimo`)
+- Métodos com nomes expressivos do domínio (ex: `findAbaixoDoEstoqueMinimo`, `findByNomeContainingIgnoreCase`)
 
 **Alternativas consideradas:**
 - DAO (Data Access Object): similar, mas Repository é mais alinhado com DDD
@@ -102,11 +103,15 @@ A camada de serviço precisa acessar dados persistidos sem se acoplar a uma tecn
 | Classe | Responsabilidade Única |
 |--------|----------------------|
 | `ProdutoController` | Mapear requisições HTTP para operações de produto |
+| `EstoqueController` | Mapear requisições HTTP para operações de estoque |
 | `EstoqueService` | Coordenar fluxo de movimentações de estoque |
+| `ProdutoService` | Coordenar operações de cadastro e consulta de produtos |
 | `MovimentacaoBuilder` | Construir e validar objetos Movimentacao |
+| `ProdutoBuilder` | Construir objetos Produto de forma fluente |
 | `LogNotificador` | Registrar alerta em log |
 | `EmailNotificador` | Enviar alerta por e-mail |
 | `CalculoPrecoAtualStrategy` | Calcular valor por preço atual × quantidade |
+| `GlobalExceptionHandler` | Capturar exceções e retornar respostas HTTP adequadas |
 
 ### Open/Closed Principle (OCP)
 
@@ -127,8 +132,41 @@ A camada de serviço precisa acessar dados persistidos sem se acoplar a uma tecn
 ### Dependency Inversion Principle (DIP)
 
 - `EstoqueService` depende de interfaces (`ProdutoRepository`, `CalculoEstoqueStrategy`, `EstoqueObserver`), não de implementações concretas
-- `ProdutoService` depende de `ProdutoRepository` (interface), não do Spring Data JPA diretamente
+- `ProdutoService` depende de `ProdutoRepository` e `CategoriaRepository` (interfaces), não do Spring Data JPA diretamente
 - Inversão realizada via injeção de dependência no construtor (sem `@Autowired` em campo)
+
+---
+
+## Tratamento de Erros
+
+O sistema utiliza um `GlobalExceptionHandler` centralizado (`@RestControllerAdvice`) que intercepta exceções e retorna respostas JSON estruturadas:
+
+| Exceção | HTTP | Quando ocorre |
+|---------|------|---------------|
+| `ProdutoNaoEncontradoException` | 404 | Produto não encontrado por ID |
+| `IllegalArgumentException` | 400 | Regra de negócio violada (ex: estoque insuficiente, categoria inválida) |
+| `MethodArgumentNotValidException` | 400 | Falha na validação do body (Bean Validation) |
+
+Formato padrão da resposta de erro:
+```json
+{
+  "timestamp": "2026-06-18T19:00:00",
+  "status": 404,
+  "erro": "Not Found",
+  "mensagem": "Produto não encontrado: 99"
+}
+```
+
+---
+
+## Documentação da API
+
+A API é documentada com **Swagger/OpenAPI 3** via `springdoc-openapi`:
+
+- **UI interativa:** `http://localhost:8080/swagger-ui/index.html`
+- **Spec JSON:** `http://localhost:8080/v3/api-docs`
+
+Todas as rotas possuem anotações `@Tag` e `@Operation`. Os DTOs possuem exemplos via `@Schema` para facilitar testes direto no Swagger UI.
 
 ---
 
@@ -142,6 +180,8 @@ A camada de serviço precisa acessar dados persistidos sem se acoplar a uma tecn
 | JUnit 5 + Mockito | Stack padrão para testes unitários com mocking |
 | Maven | Gerenciador de build consolidado no ecossistema Java |
 | Bean Validation | Validação declarativa integrada ao Spring MVC |
+| springdoc-openapi 2.3.0 | Geração automática de documentação OpenAPI 3 para Spring Boot 3 |
+| Lombok | Reduz boilerplate (getters, setters, construtores) mantendo código limpo |
 
 ---
 
@@ -156,3 +196,8 @@ A estratégia de testes foca em **testes unitários** com isolamento completo vi
 | `EstoqueServiceTest` | Fluxos de entrada/saída, disparo de Observer, uso de Strategy |
 
 **Princípio:** Cada teste valida um único comportamento (Arrange-Act-Assert), garantindo rastreabilidade entre requisito e teste.
+
+Para executar os testes:
+```bash
+mvn test
+```

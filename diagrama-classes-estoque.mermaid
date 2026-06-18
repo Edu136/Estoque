@@ -56,6 +56,22 @@ classDiagram
         +Movimentacao build()
     }
 
+    class ProdutoBuilder {
+        -String nome
+        -String descricao
+        -int quantidadeAtual
+        -int estoqueMinimo
+        -BigDecimal precoUnitario
+        -Categoria categoria
+        +ProdutoBuilder comNome(String nome)
+        +ProdutoBuilder comDescricao(String descricao)
+        +ProdutoBuilder comQuantidadeAtual(int q)
+        +ProdutoBuilder comEstoqueMinimo(int m)
+        +ProdutoBuilder comPrecoUnitario(BigDecimal p)
+        +ProdutoBuilder comCategoria(Categoria c)
+        +Produto build()
+    }
+
     class EstoqueObserver {
         <<interface>>
         +void onEstoqueBaixo(Produto produto)
@@ -86,26 +102,30 @@ classDiagram
     class ProdutoRepository {
         <<interface>>
         +Optional~Produto~ findById(Long id)
-        +List~Produto~ findByEstoqueAbaixoDoMinimo()
+        +List~Produto~ findAbaixoDoEstoqueMinimo()
         +List~Produto~ findByCategoria(Categoria c)
+        +List~Produto~ findByNomeContainingIgnoreCase(String nome)
         +Produto save(Produto p)
     }
 
     class MovimentacaoRepository {
         <<interface>>
         +List~Movimentacao~ findByProduto(Produto p)
-        +List~Movimentacao~ findByPeriodo(LocalDate inicio, LocalDate fim)
+        +List~Movimentacao~ findByProdutoOrderByDataHoraDesc(Produto p)
+        +List~Movimentacao~ findByDataHoraBetween(LocalDateTime inicio, LocalDateTime fim)
         +Movimentacao save(Movimentacao m)
     }
 
     class EstoqueService {
         -ProdutoRepository produtoRepository
         -MovimentacaoRepository movimentacaoRepository
+        -FornecedorRepository fornecedorRepository
         -List~EstoqueObserver~ observers
         -CalculoEstoqueStrategy calculoStrategy
-        +void registrarEntrada(Long produtoId, int quantidade, Fornecedor fornecedor)
-        +void registrarSaida(Long produtoId, int quantidade)
-        +List~Produto~ listarAbaixoDoMinimo()
+        +MovimentacaoResponseDTO registrarEntrada(Long produtoId, int quantidade, Long fornecedorId, String obs)
+        +MovimentacaoResponseDTO registrarSaida(Long produtoId, int quantidade, String obs)
+        +List~ProdutoResponseDTO~ listarAbaixoDoMinimo()
+        +List~MovimentacaoResponseDTO~ listarMovimentacoes(Long produtoId)
         +BigDecimal calcularValorTotalEstoque()
         +void addObserver(EstoqueObserver o)
         -void notificarObservers(Produto p)
@@ -113,10 +133,16 @@ classDiagram
 
     class ProdutoService {
         -ProdutoRepository produtoRepository
-        +Produto cadastrar(Produto produto)
-        +Produto atualizar(Long id, Produto produto)
-        +List~Produto~ listarTodos()
-        +Produto buscarPorId(Long id)
+        -CategoriaRepository categoriaRepository
+        +ProdutoResponseDTO cadastrar(ProdutoRequestDTO dto)
+        +ProdutoResponseDTO atualizar(Long id, ProdutoRequestDTO dto)
+        +ProdutoResponseDTO buscarPorId(Long id)
+        +List~ProdutoResponseDTO~ listarTodos()
+        +List~ProdutoResponseDTO~ buscarPorNome(String nome)
+        +List~ProdutoResponseDTO~ listarRecentes(int limite)
+        +ProdutoResponseDTO adicionarQuantidade(Long id, int quantidade)
+        +void deletar(Long id)
+        +Produto buscarEntidadePorId(Long id)
     }
 
     class EstoqueController {
@@ -124,15 +150,20 @@ classDiagram
         +ResponseEntity registrarEntrada(EntradaDTO dto)
         +ResponseEntity registrarSaida(SaidaDTO dto)
         +ResponseEntity listarAbaixoDoMinimo()
-        +ResponseEntity calcularValorEstoque()
+        +ResponseEntity listarMovimentacoes(Long produtoId)
+        +ResponseEntity calcularValorTotal()
     }
 
     class ProdutoController {
         -ProdutoService produtoService
-        +ResponseEntity cadastrar(ProdutoDTO dto)
+        +ResponseEntity cadastrar(ProdutoRequestDTO dto)
         +ResponseEntity listar()
+        +ResponseEntity listarRecentes(int limite)
         +ResponseEntity buscarPorId(Long id)
-        +ResponseEntity atualizar(Long id, ProdutoDTO dto)
+        +ResponseEntity buscarPorNome(String nome)
+        +ResponseEntity atualizar(Long id, ProdutoRequestDTO dto)
+        +ResponseEntity deletar(Long id)
+        +ResponseEntity adicionarQuantidade(Long id, int quantidade)
     }
 
     %% Relacionamentos de domínio
@@ -141,8 +172,7 @@ classDiagram
     Movimentacao --> Fornecedor
     Movimentacao --> TipoMovimentacao
     MovimentacaoBuilder ..> Movimentacao : cria
-
-
+    ProdutoBuilder ..> Produto : cria
 
     %% Observer
     EstoqueObserver <|.. LogNotificador
@@ -162,10 +192,3 @@ classDiagram
     %% Controllers
     EstoqueController --> EstoqueService
     ProdutoController --> ProdutoService
- 
-%% Builder para criação de movimentações
-%% Observer para alertas de estoque baixo
-%% Strategy para diferentes formas de cálculo do estoque
-%% Repository para abstração da persistência de dados
-%% Service concentra as regras de negócio
-%% Controller expõe as operações da API
