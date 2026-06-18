@@ -2,8 +2,13 @@ package com.estoque.domain.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-// SRP: Categoria representa apenas o conceito de categoria de produto
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 @Table(name = "categorias")
 public class Categoria {
@@ -18,16 +23,8 @@ public class Categoria {
 
     private String descricao;
 
-    public Categoria() {}
-
     public Categoria(String nome, String descricao) {
         this.nome = nome;
         this.descricao = descricao;
     }
-
-    public Long getId() { return id; }
-    public String getNome() { return nome; }
-    public void setNome(String nome) { this.nome = nome; }
-    public String getDescricao() { return descricao; }
-    public void setDescricao(String descricao) { this.descricao = descricao; }
 }

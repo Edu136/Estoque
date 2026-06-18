@@ -1,8 +1,8 @@
 package com.estoque.controller;
 
-import com.estoque.domain.model.Movimentacao;
-import com.estoque.domain.model.Produto;
 import com.estoque.dto.EntradaDTO;
+import com.estoque.dto.MovimentacaoResponseDTO;
+import com.estoque.dto.ProdutoResponseDTO;
 import com.estoque.dto.SaidaDTO;
 import com.estoque.service.EstoqueService;
 import jakarta.validation.Valid;
@@ -23,33 +23,32 @@ public class EstoqueController {
     }
 
     @PostMapping("/entrada")
-    public ResponseEntity<Movimentacao> registrarEntrada(@Valid @RequestBody EntradaDTO dto) {
-        Movimentacao mov = estoqueService.registrarEntrada(
+    public ResponseEntity<MovimentacaoResponseDTO> registrarEntrada(@Valid @RequestBody EntradaDTO dto) {
+        return ResponseEntity.ok(estoqueService.registrarEntrada(
                 dto.getProdutoId(),
                 dto.getQuantidade(),
                 dto.getFornecedorId(),
                 dto.getObservacao()
-        );
-        return ResponseEntity.ok(mov);
+        ));
     }
 
     @PostMapping("/saida")
-    public ResponseEntity<Movimentacao> registrarSaida(@Valid @RequestBody SaidaDTO dto) {
-        Movimentacao mov = estoqueService.registrarSaida(
+    public ResponseEntity<MovimentacaoResponseDTO> registrarSaida(@Valid @RequestBody SaidaDTO dto) {
+        return ResponseEntity.ok(estoqueService.registrarSaida(
                 dto.getProdutoId(),
                 dto.getQuantidade(),
                 dto.getObservacao()
-        );
-        return ResponseEntity.ok(mov);
+        ));
     }
 
     @GetMapping("/abaixo-minimo")
-    public ResponseEntity<List<Produto>> listarAbaixoDoMinimo() {
+    public ResponseEntity<List<ProdutoResponseDTO>> listarAbaixoDoMinimo() {
         return ResponseEntity.ok(estoqueService.listarAbaixoDoMinimo());
     }
 
     @GetMapping("/movimentacoes/{produtoId}")
-    public ResponseEntity<List<Movimentacao>> listarMovimentacoes(@PathVariable Long produtoId) {
+    public ResponseEntity<List<MovimentacaoResponseDTO>> listarMovimentacoes(
+            @PathVariable Long produtoId) {
         return ResponseEntity.ok(estoqueService.listarMovimentacoes(produtoId));
     }
 

@@ -2,9 +2,14 @@ package com.estoque.domain.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import java.math.BigDecimal;
 
-// SRP: Produto cuida apenas de seus próprios dados e regras de domínio
+@Getter
+@Setter
+@NoArgsConstructor
 @Entity
 @Table(name = "produtos")
 public class Produto {
@@ -35,8 +40,6 @@ public class Produto {
     @JoinColumn(name = "categoria_id")
     private Categoria categoria;
 
-    public Produto() {}
-
     public Produto(String nome, String descricao, int quantidadeAtual,
                    int estoqueMinimo, BigDecimal precoUnitario, Categoria categoria) {
         this.nome = nome;
@@ -47,12 +50,10 @@ public class Produto {
         this.categoria = categoria;
     }
 
-    // Regra de domínio encapsulada na entidade
     public boolean estaBaixoDoMinimo() {
         return this.quantidadeAtual <= this.estoqueMinimo;
     }
 
-    // Atualiza quantidade validando para não ficar negativa
     public void atualizarQuantidade(int delta) {
         int nova = this.quantidadeAtual + delta;
         if (nova < 0) {
@@ -62,18 +63,4 @@ public class Produto {
         }
         this.quantidadeAtual = nova;
     }
-
-    public Long getId() { return id; }
-    public String getNome() { return nome; }
-    public void setNome(String nome) { this.nome = nome; }
-    public String getDescricao() { return descricao; }
-    public void setDescricao(String descricao) { this.descricao = descricao; }
-    public int getQuantidadeAtual() { return quantidadeAtual; }
-    public void setQuantidadeAtual(int quantidadeAtual) { this.quantidadeAtual = quantidadeAtual; }
-    public int getEstoqueMinimo() { return estoqueMinimo; }
-    public void setEstoqueMinimo(int estoqueMinimo) { this.estoqueMinimo = estoqueMinimo; }
-    public BigDecimal getPrecoUnitario() { return precoUnitario; }
-    public void setPrecoUnitario(BigDecimal precoUnitario) { this.precoUnitario = precoUnitario; }
-    public Categoria getCategoria() { return categoria; }
-    public void setCategoria(Categoria categoria) { this.categoria = categoria; }
 }

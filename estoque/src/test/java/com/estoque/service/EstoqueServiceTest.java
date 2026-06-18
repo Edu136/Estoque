@@ -5,6 +5,8 @@ import com.estoque.domain.model.Categoria;
 import com.estoque.domain.model.Fornecedor;
 import com.estoque.domain.model.Movimentacao;
 import com.estoque.domain.model.Produto;
+import com.estoque.dto.MovimentacaoResponseDTO;
+import com.estoque.dto.ProdutoResponseDTO;
 import com.estoque.repository.FornecedorRepository;
 import com.estoque.repository.MovimentacaoRepository;
 import com.estoque.repository.ProdutoRepository;
@@ -70,10 +72,10 @@ class EstoqueServiceTest {
         when(produtoRepository.save(any())).thenReturn(produto);
         when(movimentacaoRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
 
-        Movimentacao resultado = estoqueService.registrarEntrada(1L, 20, 1L, "Reposição semanal");
+        MovimentacaoResponseDTO resultado = estoqueService.registrarEntrada(1L, 20, 1L, "Reposição semanal");
 
         assertNotNull(resultado);
-        assertEquals(TipoMovimentacao.ENTRADA, resultado.getTipo());
+        assertEquals(TipoMovimentacao.ENTRADA.name(), resultado.getTipo());
         assertEquals(20, resultado.getQuantidade());
         assertEquals(30, produto.getQuantidadeAtual()); // 10 + 20
         verify(movimentacaoRepository).save(any(Movimentacao.class));
@@ -99,10 +101,10 @@ class EstoqueServiceTest {
         when(produtoRepository.save(any())).thenReturn(produto);
         when(movimentacaoRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
 
-        Movimentacao resultado = estoqueService.registrarSaida(1L, 3, "Venda balcão");
+        MovimentacaoResponseDTO resultado = estoqueService.registrarSaida(1L, 3, "Venda balcão");
 
         assertNotNull(resultado);
-        assertEquals(TipoMovimentacao.SAIDA, resultado.getTipo());
+        assertEquals(TipoMovimentacao.SAIDA.name(), resultado.getTipo());
         assertEquals(7, produto.getQuantidadeAtual()); // 10 - 3
     }
 
@@ -128,7 +130,6 @@ class EstoqueServiceTest {
 
         estoqueService.registrarSaida(1L, 5, "Venda");
 
-        // Observer deve ser chamado pois 1 <= 5 (estoqueMinimo)
         verify(observerMock, times(1)).onEstoqueBaixo(produto);
     }
 
@@ -143,7 +144,6 @@ class EstoqueServiceTest {
 
         estoqueService.registrarSaida(1L, 3, "Venda");
 
-        // 17 > 5 (estoqueMinimo), não deve notificar
         verify(observerMock, never()).onEstoqueBaixo(any());
     }
 
@@ -182,7 +182,7 @@ class EstoqueServiceTest {
 
         when(produtoRepository.findAbaixoDoEstoqueMinimo()).thenReturn(List.of(critico));
 
-        List<Produto> resultado = estoqueService.listarAbaixoDoMinimo();
+        List<ProdutoResponseDTO> resultado = estoqueService.listarAbaixoDoMinimo();
 
         assertEquals(1, resultado.size());
         assertEquals("Feijão 1kg", resultado.get(0).getNome());

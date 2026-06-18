@@ -5,9 +5,12 @@ import com.estoque.domain.enums.TipoMovimentacao;
 import com.estoque.domain.model.Fornecedor;
 import com.estoque.domain.model.Movimentacao;
 import com.estoque.domain.model.Produto;
+import com.estoque.dto.MovimentacaoResponseDTO;
+import com.estoque.dto.ProdutoResponseDTO;
 import com.estoque.repository.FornecedorRepository;
 import com.estoque.repository.MovimentacaoRepository;
 import com.estoque.repository.ProdutoRepository;
+import com.estoque.exception.ProdutoNaoEncontradoException;
 import com.estoque.service.observer.EstoqueObserver;
 import com.estoque.service.strategy.CalculoEstoqueStrategy;
 import org.springframework.stereotype.Service;
@@ -16,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * SRP: EstoqueService cuida exclusivamente das movimentações de estoque.
@@ -51,10 +55,10 @@ public class EstoqueService {
     }
 
     @Transactional
-    public Movimentacao registrarEntrada(Long produtoId, int quantidade, Long fornecedorId, String obs) {
+    public MovimentacaoResponseDTO registrarEntrada(Long produtoId, int quantidade, Long fornecedorId, String obs) {
         Produto produto = buscarProduto(produtoId);
         Fornecedor fornecedor = fornecedorRepository.findById(fornecedorId)
-                .orElseThrow(() -> new RuntimeException("Fornecedor não encontrado: " + fornecedorId));
+                .orElseThrow(() -> new IllegalArgumentException("Fornecedor não encontrado: " + fornecedorId));
 
         // Padrão Builder: constrói a movimentação de forma legível e segura
         Movimentacao movimentacao = new MovimentacaoBuilder()
@@ -75,11 +79,11 @@ public class EstoqueService {
             notificarObservers(produto);
         }
 
-        return salva;
+        return MovimentacaoResponseDTO.de(salva);
     }
 
     @Transactional
-    public Movimentacao registrarSaida(Long produtoId, int quantidade, String obs) {
+    public MovimentacaoResponseDTO registrarSaida(Long produtoId, int quantidade, String obs) {
         Produto produto = buscarProduto(produtoId);
 
         Movimentacao movimentacao = new MovimentacaoBuilder()
@@ -99,18 +103,22 @@ public class EstoqueService {
             notificarObservers(produto);
         }
 
-        return salva;
+        return MovimentacaoResponseDTO.de(salva);
     }
 
     @Transactional(readOnly = true)
-    public List<Produto> listarAbaixoDoMinimo() {
-        return produtoRepository.findAbaixoDoEstoqueMinimo();
+    public List<ProdutoResponseDTO> listarAbaixoDoMinimo() {
+        return produtoRepository.findAbaixoDoEstoqueMinimo().stream()
+                .map(ProdutoResponseDTO::de)
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<Movimentacao> listarMovimentacoes(Long produtoId) {
+    public List<MovimentacaoResponseDTO> listarMovimentacoes(Long produtoId) {
         Produto produto = buscarProduto(produtoId);
-        return movimentacaoRepository.findByProdutoOrderByDataHoraDesc(produto);
+        return movimentacaoRepository.findByProdutoOrderByDataHoraDesc(produto).stream()
+                .map(MovimentacaoResponseDTO::de)
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -129,6 +137,6 @@ public class EstoqueService {
 
     private Produto buscarProduto(Long id) {
         return produtoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Produto não encontrado: " + id));
+                .orElseThrow(() -> new ProdutoNaoEncontradoException(id));
     }
 }
