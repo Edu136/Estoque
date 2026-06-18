@@ -1,7 +1,7 @@
 # 📦 Controle de Estoque — Engenharia de Software
 
 Sistema back-end em Java para controle de estoque de pequenos comércios,
-desenvolvido como trabalho prático da UC de Engenharia de Software.
+desenvolvido como trabalho prático da UC de Engenharia de Softwarenin.
 
 ---
 
